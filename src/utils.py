@@ -16,6 +16,7 @@ def config(filename="config.ini", section="postgresql"):
 
 
 def format_salary_description(vac):
+    """Функция для форматирования полей описания вакансии"""
     if vac['snippet']['requirement'] is None:
         requirement = ''
     else:
