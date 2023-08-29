@@ -5,12 +5,14 @@ from src.utils import config
 
 
 class Parser:
+    """Класс для парсинга"""
     def __init__(self, url: str, employer: str):
         self.employer_url = None
         self.url = url
         self.employer = employer
 
     def get_employers(self):
+        """Метод для получения списка работодателей с платформы"""
         employers_lst = []
         for page in range(20):
             params = {'per_page': 100,
@@ -28,6 +30,7 @@ class Parser:
                     return [el['id'], el['name'], el['open_vacancies'], el['vacancies_url']]
 
     def get_vacancies(self):
+        """Метод для получения списка вакансий определенного работодателя по Москве"""
         vacancies_lst = []
         for page in range(20):
             params = {'per_page': 100,
@@ -46,6 +49,7 @@ class Parser:
 
 
 class DBCreator:
+    """Класс для создания и заполнения таблиц"""
     def __init__(self, db_name: str):
         self.__params = config()
         self.conn = psycopg2.connect(dbname='postgres', **self.__params)
@@ -81,10 +85,10 @@ class DBCreator:
         self.cur.execute("""ALTER TABLE vacancies ADD CONSTRAINT fk_company_id 
                             FOREIGN KEY(company_id) REFERENCES employers(company_id)""")
 
-    def into_table_employers(self, *args, name):
+    def into_table_employers(self, *args, name: str):
         self.cur.execute(f"INSERT INTO {name} VALUES {args}")
 
-    def into_table_vacancies(self, vac):
+    def into_table_vacancies(self, vac: str):
         self.cur.execute(f"INSERT INTO vacancies VALUES(%s, %s, %s, %s, %s, %s, %s)", vac)
 
     def cur_close(self):
@@ -95,6 +99,7 @@ class DBCreator:
 
 
 class DBManager:
+    """Класс для работы с данными в БД."""
     def __init__(self, db_name: str):
         self.__params = config()
         self.__params.update({'dbname': db_name})
@@ -109,6 +114,7 @@ class DBManager:
         return self.conn.close()
 
     def get_companies_and_vacancies_count(self):
+        """Получает список всех компаний и количество вакансий у каждой компании."""
         self.cur.execute("SELECT * FROM employers")
         result = self.cur.fetchall()
         for row in result:
@@ -116,6 +122,8 @@ class DBManager:
         print('')
 
     def get_all_vacancies(self):
+        """Получает список всех вакансий с указанием названия компании,
+        названия вакансии и зарплаты и ссылки на вакансию."""
         self.cur.execute("""SELECT company_name, title, salary_from, salary_to, vacancy_url FROM employers
                             FULL JOIN vacancies USING(company_id)""")
         result = self.cur.fetchall()
@@ -134,6 +142,7 @@ class DBManager:
         print('')
 
     def get_avg_salary(self):
+        """Получает среднюю зарплату по вакансиям."""
         self.cur.execute("SELECT CEIL((AVG(salary_from) + AVG(salary_to))/2) AS average_salary FROM vacancies")
         result = str(self.cur.fetchall())
         avg_salary = ''
@@ -145,6 +154,7 @@ class DBManager:
         print('')
 
     def get_vacancies_with_higher_salary(self):
+        """Получает список всех вакансий, у которых зарплата выше средней по всем вакансиям."""
         self.cur.execute("""SELECT company_name, title, salary_from, salary_to, description, vacancy_url FROM employers
                             FULL JOIN vacancies USING(company_id) 
                             WHERE salary_to > (SELECT CEIL((AVG(salary_from) + AVG(salary_to))/2) FROM vacancies) 
@@ -166,18 +176,20 @@ class DBManager:
                   f'ссылка на вакансию: "{row[5]}"')
         print('')
 
-    def get_vacancies_with_keyword(self, keyword):
+    def get_vacancies_with_keyword(self, keyword: str):
+        """Получает список всех вакансий, в названии которых содержатся переданные в метод слова, например 'python'."""
         self.cur.execute(f"""SELECT company_name, title, vacancy_url FROM employers
                             FULL JOIN vacancies USING(company_id) WHERE title LIKE '%{keyword}%'""")
         result = self.cur.fetchall()
-        if result == []:
+        if not result or result == []:
             print('Нет вакансий, удовлетворяющих условиям поиска.')
 
         for row in result:
             print(f'Компания "{row[0]}", вакансия: {row[1]}, ссылка на вакансию: {row[2]}')
         print('')
 
-    def user_query(self, query):
+    def user_query(self, query: str):
+        """Запрос пользователя"""
         self.cur.execute(query)
         result = self.cur.fetchall()
         for row in result:
