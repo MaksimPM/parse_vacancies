@@ -1,1 +1,1 @@
-# CourseWork5
+# Parsing Vacancies + SQL
