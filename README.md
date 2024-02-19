@@ -1,1 +1,1 @@
-# Parsing Vacancies + SQL
+# parse vacancies
